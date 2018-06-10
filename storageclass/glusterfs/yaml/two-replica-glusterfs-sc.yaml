@@ -1,0 +1,16 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: two-replica-glusterfs-sc
+provisioner: kubernetes.io/glusterfs
+reclaimPolicy: Retain
+parameters:
+  gidMax: "50000"
+  gidMin: "40000"
+  resturl: http://10.142.21.23:30088
+  volumetype: replicate:2
+  restauthenabled: "true"
+  restuser: "admin"
+  restuserkey: "123456"
+#  secretNamespace: "default"
+#  #  secretName: "heketi-secret"

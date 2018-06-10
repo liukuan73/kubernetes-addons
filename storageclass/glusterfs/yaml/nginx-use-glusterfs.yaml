@@ -1,0 +1,39 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: nginx-use-glusterfs
+  namespace: kube-system
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - image: nginx:1.11.4-alpine
+        imagePullPolicy: IfNotPresent
+        name: nginx-use-pvc
+        volumeMounts:
+        - mountPath: /test
+          name: my-pvc
+      volumes:
+      - name: my-pvc
+        persistentVolumeClaim:
+          claimName: kafka-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-use-pvc
+  namespace: kube-system
+spec:
+  type: NodePort
+  ports:
+  - name: nginx-use-pvc
+    port: 80
+    targetPort: 80
+    nodePort: 30080
+  selector:
+    app: nginx
+

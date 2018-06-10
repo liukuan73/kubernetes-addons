@@ -1,0 +1,71 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: heketi
+  namespace: kube-system
+  labels:
+    app: heketi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: heketi
+  template:
+    metadata:
+      labels:
+        app: heketi
+    spec:
+      containers:
+        - name: heketi
+          image: heketi/heketi:4
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: config
+              mountPath: /etc/heketi
+            - name: db
+              mountPath: /dcos/heketi
+            - name: time
+              mountPath: /etc/localtime
+            - name: hosts
+              mountPath: /etc/hosts
+          ports:
+            - containerPort: 8088
+              name: heketi-api
+      volumes:
+        - name: config
+          hostPath:
+            path: /dcos/heketi-docker/config
+        - name: db
+          hostPath:
+            path: /dcos/heketi-docker/db
+        - name: time
+          hostPath:
+            path: /etc/localtime
+        - name: hosts
+          hostPath:
+            path: /etc/hosts
+      nodeSelector:
+        kubernetes.io/hostname: k8smaster03
+      tolerations:
+      - key: "master"
+        operator: "Equal"
+        value: "yes"
+        effect: "NoSchedule"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: heketi
+  name: heketi
+  namespace: kube-system
+spec:
+  type: NodePort
+  ports:
+  - name: heketi
+    port: 8089
+    protocol: TCP
+    targetPort: 8088
+    nodePort: 30088
+  selector:
+    app: heketi

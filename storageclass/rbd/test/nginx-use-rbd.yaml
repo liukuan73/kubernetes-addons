@@ -1,0 +1,38 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: nginx-use-rbd
+  namespace: default
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - image: nginx:1.11.4-alpine
+        imagePullPolicy: IfNotPresent
+        name: nginx-use-rbd
+        volumeMounts:
+        - mountPath: /test
+          name: rbd-pvc
+      volumes:
+      - name: rbd-pvc
+        persistentVolumeClaim:
+          claimName: rbd-pvc1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-use-rbd
+  namespace: default
+spec:
+  type: NodePort
+  ports:
+  - name: nginx-use-rbd
+    port: 80
+    targetPort: 80
+    nodePort: 30099
+  selector:
+    app: nginx

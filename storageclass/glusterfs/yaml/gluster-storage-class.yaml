@@ -1,0 +1,14 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: two-replica-glusterfs-sc
+provisioner: kubernetes.io/glusterfs
+parameters:
+  #endpoint: "heketi-gluster-endpoints"
+  gidMax: "50000"
+  gidMin: "40000"
+  restauthenabled: "true"
+  resturl: "http://10.132.47.79:8080"
+  restuser: "admin"
+  restuserkey: "123456"
+

@@ -1,0 +1,13 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: gluster-pvc1
+  namespace: default
+  annotations:
+    volume.beta.kugbernetes.io/storage-class: "gfs1"
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
