@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager
+  namespace: kube-system
+data:
+  config.yml: |-
+    global:
+      resolve_timeout: 5m
+      smtp_smarthost: 'smtp.exmail.qq.com:25'
+      smtp_from: 'admin@yourcompany.com'
+      smtp_auth_username: 'admin@yourcompany.com'
+      smtp_auth_password: 'yourpassword'
+      slack_api_url: '<slack_api_url>'
+    route:
+      receiver: slack-notifications
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 15m
+      routes:
+      - match:
+          severity: email
+        receiver: email_alert
+    receivers:
+    - name: 'email_alert'
+      email_configs:
+      - to: 'user@yourcompany.com'
+        from: 'test.com'
+        smarthost: "smtp.163.com:25"
+        auth_username: "liukuan73"
+        auth_password: "123456"
+        require_tls: true
+    - name: 'slack-notifications'
+      slack_configs:
+      - channel: '#alerts'
+    - name: 'test-webhook'
+      webhook_configs:
+      - url: 'alertmanager:9093/api/v1/monitor'
+        send_resolved: true

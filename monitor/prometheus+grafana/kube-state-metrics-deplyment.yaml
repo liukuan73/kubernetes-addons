@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kube-state-metrics
+  namespace: kube-system
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: kube-state-metrics
+  namespace: kube-system
+  labels:
+    app: kube-state-metrics
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: kube-state-metrics
+    spec:
+      serviceAccountName: kube-state-metrics
+      containers:
+      - name: kube-state-metrics
+        image: gcr.io/google_containers/kube-state-metrics:v1.1.0
+        ports:
+        - containerPort: 8080
+      restartPolicy: Always
+      nodeSelector:
+        node-role.kubernetes.io/master: "true"
+      tolerations:
+      - key: "node-role.kubernetes.io/master"
+        effect: "NoSchedule"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/scrape: 'true'
+  name: kube-state-metrics
+  namespace: kube-system
+  labels:
+    app: kube-state-metrics
+spec:
+  type: NodePort
+  ports:
+  - name: kube-state-metrics
+    port: 8080
+    targetPort: 8080
+    nodePort: 30008
+  selector:
+    app: kube-state-metrics

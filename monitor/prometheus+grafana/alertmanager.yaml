@@ -1,0 +1,71 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: alertmanager
+  namespace: kube-system
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: alertmanager
+      labels:
+        app: alertmanager
+    spec:
+      containers:
+      - name: alertmanager
+        image: prom/alertmanager:v0.11.0
+        args:
+          - '-config.file=/etc/alertmanager/config.yml'
+          - '-storage.path=/alertmanager'
+          - '-web.external-url=http://10.142.21.21:30010/alertmanager'
+        ports:
+        - name: alertmanager
+          containerPort: 9093
+#        env:
+#        - name: EXTERNAL_URL
+#          valueFrom:
+#            configMapKeyRef:
+#              name: external-url
+#              key: url
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/alertmanager
+#        - name: templates-volume
+#          mountPath: /etc/alertmanager-templates
+        - name: alertmanager
+          mountPath: /alertmanager
+      volumes:
+      - name: config-volume
+        configMap:
+          name: alertmanager
+#      - name: templates-volume
+#        configMap:
+#          name: alertmanager-templates
+      - name: alertmanager
+        emptyDir: {}
+      nodeSelector:
+        node-role.kubernetes.io/master: "true"
+      tolerations:
+      - key: "node-role.kubernetes.io/master"
+        effect: "NoSchedule"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager
+  namespace: kube-system
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/path: '/alertmanager/metrics'
+  labels:
+    name: alertmanager
+spec:
+  selector:
+    app: alertmanager
+  type: NodePort
+  ports:
+  - name: alertmanager
+    protocol: TCP
+    port: 9093
+    targetPort: 9093
+    nodePort: 30010

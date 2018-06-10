@@ -1,0 +1,338 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus
+  namespace: kube-system
+data:
+  prometheus.yaml: |
+    global:
+      # 抓取的间隔时间
+      scrape_interval: 20s
+      # How long until a scrape request times out.
+      scrape_timeout: 10s
+      # 计算的间隔时间
+      evaluation_interval: 20s
+    # 报警规则文件
+    rule_files:
+      - '/etc/prometheus-rules/*.rules'
+    scrape_configs:
+      # 监控自身，可配可不配
+      - job_name: 'prometheus'
+        # 目标通过static_configs参数进行静态配置
+        static_configs:
+        - targets: ['localhost:9090']  #prometheus 启动的端口
+      
+
+      - job_name: 'kube-apiservers'
+ 
+        # 通过https访问apiserver
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+        #以k8s的角色(role)来定义收集，比如node,service,pod,endpoints,ingress等等 
+        kubernetes_sd_configs:
+        # 从endpoints获取apiserver数据
+        - role: endpoints
+        
+        #relabel_configs允许在抓取之前对任何目标及其标签进行修改。
+        relabel_configs:
+        # 选择哪些label
+        - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+          # 上述选择的label的值需要与下述对应
+          regex: default;kubernetes;https
+          # 含有符合regex的source_label的endpoints进行保留
+          action: keep
+
+          
+      - job_name: 'kubelet'
+
+        # 通过https访问apiserver，通过apiserver的api获取数据
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+                
+        #以k8s的角色(role)来定义收集，比如node,service,pod,endpoints,ingress等等 
+        kubernetes_sd_configs:
+        # 从k8s的node对象获取数据
+        - role: node
+
+        relabel_configs:
+        # 用新的前缀代替原label name前缀，没有replacement的话功能就是去掉label_name前缀
+        # 例如：以下两句的功能就是将__meta_kubernetes_node_label_kubernetes_io_hostname变为kubernetes_io_hostname
+        - action: labelmap
+          regex: __meta_kubernetes_node_label_(.+)
+        # replacement中的值将会覆盖target_label中指定的label name的值,
+        # 即__address__的值会被替换为kubernetes.default.svc:443
+        - target_label: __address__
+          replacement: kubernetes.default.svc:443
+          #replacement: 10.142.21.21:6443
+        # 获取__meta_kubernetes_node_name的值
+        - source_labels: [__meta_kubernetes_node_name]
+          #匹配一个或多个任意字符，将上述source_labels的值生成变量
+          regex: (.+)
+          # 将# replacement中的值将会覆盖target_label中指定的label name的值,
+          # 即__metrics_path__的值会被替换为/api/v1/nodes/${1}/proxy/metrics,
+          # 其中${1}的值会被替换为__meta_kubernetes_node_name的值
+          target_label: __metrics_path__
+          replacement: /api/v1/nodes/${1}/proxy/metrics
+        #or:
+        #- source_labels: [__address__]
+        #  regex: '(.*):10250'
+        #  replacement: '${1}:4194'
+        #  target_label: __address__
+        #- source_labels: [__meta_kubernetes_node_label_role]
+        #  action: replace
+        #  target_label: role
+
+
+      - job_name: 'cadvisor'
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      
+        kubernetes_sd_configs:
+        - role: node
+      
+        relabel_configs:
+        - action: labelmap
+          regex: __meta_kubernetes_node_label_(.+)
+        - target_label: __address__
+          replacement: kubernetes.default.svc:443
+        - source_labels: [__meta_kubernetes_node_name]
+          regex: (.+)
+          target_label: __metrics_path__
+          replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+        metric_relabel_configs:
+          - action: replace
+            source_labels: [id]
+            regex: '^/machine\.slice/machine-rkt\\x2d([^\\]+)\\.+/([^/]+)\.service$'
+            target_label: rkt_container_name
+            replacement: '${2}-${1}'
+          - action: replace
+            source_labels: [id]
+            regex: '^/system\.slice/(.+)\.service$'
+            target_label: systemd_service_name
+            replacement: '${1}'
+
+
+      - job_name: 'prometheus-node-exporter'
+        
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        kubernetes_sd_configs:
+
+        #The endpoints role discovers targets from listed endpoints of a service. For each
+        #endpoint address one target is discovered per port. If the endpoint is backed by
+        #a pod, all additional container ports of the pod, not bound to an endpoint port,
+        #are discovered as targets as well
+        - role: endpoints
+        relabel_configs:
+        # 只保留service中含有prometheus.io/scrape: 'true'的endpoint
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+          regex: true
+          action: keep
+        # 只保留上述过滤后endpoint中port的name为prometheus-node-exporter的endpoint
+        - source_labels: [__meta_kubernetes_endpoint_port_name]
+          regex: prometheus-node-exporter
+          action: keep
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
+          action: replace
+          target_label: __scheme__
+          regex: (https?)
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+          action: replace
+          target_label: __metrics_path__
+          regex: (.+)
+        - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+          action: replace
+          target_label: __address__
+          regex: (.+)(?::\d+);(\d+)
+          replacement: $1:$2
+        # 去掉label name中的前缀__meta_kubernetes_service_label_
+        - action: labelmap
+          regex: __meta_kubernetes_service_label_(.+)
+        # 将__meta_kubernetes_namespace重命名为kubernetes_namespace
+        - source_labels: [__meta_kubernetes_namespace]
+          action: replace
+          target_label: kubernetes_namespace
+        # 将__meta_kubernetes_service_name重命名为kubernetes_name
+        - source_labels: [__meta_kubernetes_service_name]
+          action: replace
+          target_label: kubernetes_name
+
+
+      - job_name: 'kube-state-metrics'
+        
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        kubernetes_sd_configs:
+
+        #The endpoints role discovers targets from listed endpoints of a service. For each
+        #endpoint address one target is discovered per port. If the endpoint is backed by
+        #a pod, all additional container ports of the pod, not bound to an endpoint port,
+        #are discovered as targets as well
+        - role: endpoints
+        relabel_configs:
+        # 只保留service中含有prometheus.io/scrape: 'true'的endpoint
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+          regex: true
+          action: keep
+        # 只保留上述过滤后endpoint中port的name为prometheus-node-exporter的endpoint
+        - source_labels: [__meta_kubernetes_endpoint_port_name]
+          regex: kube-state-metrics
+          action: keep
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
+          action: replace
+          target_label: __scheme__
+          regex: (https?)
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+          action: replace
+          target_label: __metrics_path__
+          regex: (.+)
+        - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+          action: replace
+          target_label: __address__
+          regex: (.+)(?::\d+);(\d+)
+          replacement: $1:$2
+        # 去掉label name中的前缀__meta_kubernetes_service_label_
+        - action: labelmap
+          regex: __meta_kubernetes_service_label_(.+)
+        # 将__meta_kubernetes_namespace重命名为kubernetes_namespace
+        - source_labels: [__meta_kubernetes_namespace]
+          action: replace
+          target_label: kubernetes_namespace
+        # 将__meta_kubernetes_service_name重命名为kubernetes_name
+        - source_labels: [__meta_kubernetes_service_name]
+          action: replace
+          target_label: kubernetes_name
+
+
+      - job_name: kubernetes-service-endpoints
+        
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        kubernetes_sd_configs:
+
+        #The endpoints role discovers targets from listed endpoints of a service. For each
+        #endpoint address one target is discovered per port. If the endpoint is backed by
+        #a pod, all additional container ports of the pod, not bound to an endpoint port,
+        #are discovered as targets as well
+        - role: endpoints
+        relabel_configs:
+        #
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+          regex: true
+          action: keep
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
+          action: replace
+          target_label: __scheme__
+          regex: (https?)
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+          action: replace
+          target_label: __metrics_path__
+          regex: (.+)
+        - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+          action: replace
+          target_label: __address__
+          regex: (.+)(?::\d+);(\d+)
+          replacement: $1:$2
+        - action: labelmap
+          regex: __meta_kubernetes_service_label_(.+)
+        - source_labels: [__meta_kubernetes_namespace]
+          action: replace
+          target_label: kubernetes_namespace
+        - source_labels: [__meta_kubernetes_service_name]
+          action: replace
+          target_label: kubernetes_name
+
+
+      - job_name: 'kubernetes-services'
+        # The HTTP resource path on which to fetch metrics from targets.
+        metrics_path: /probe
+        # Optional HTTP URL parameters.
+        params:
+          module: [http_2xx]
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        kubernetes_sd_configs:
+        - role: service
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_probe]
+          action: keep
+          regex: true
+        - source_labels: [__address__]
+          target_label: __param_target
+        - target_label: __address__
+          replacement: blackbox
+        - source_labels: [__param_target]
+          target_label: instance
+        - action: labelmap
+          regex: __meta_kubernetes_service_label_(.+)
+        - source_labels: [__meta_kubernetes_namespace]
+          target_label: kubernetes_namespace
+        - source_labels: [__meta_kubernetes_service_name]
+          target_label: kubernetes_name
+
+
+      - job_name: 'kubernetes-pods'
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        kubernetes_sd_configs:
+        - role: pod
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_role, __meta_kubernetes_pod_annotation_prometheus_io_scrape]
+          action: keep
+          regex: pod;true
+        - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+          action: replace
+          regex: ([^:]+)(?::\d+)?;(\d+)
+          replacement: $1:$2
+          target_label: __address__
+        - action: labelmap
+          regex: __meta_kubernetes_pod_label_(.+)
+        - source_labels: [__meta_kubernetes_namespace]
+          action: replace
+          target_label: kubernetes_namespace
+        - source_labels: [__meta_kubernetes_pod_name]
+          action: replace
+          target_label: kubernetes_pod_name
+
+
+      - job_name: 'kubernetes-ingresses'
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        metrics_path: /probe
+        params:
+          module: [http_2xx]
+        kubernetes_sd_configs:
+          - role: ingress
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_ingress_annotation_prometheus_io_probe]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_ingress_scheme,__address__,__meta_kubernetes_ingress_path]
+            regex: (.+);(.+);(.+)
+            replacement: ${1}://${2}${3}
+            target_label: __param_target
+          - target_label: __address__
+            replacement: blackbox-exporter.example.com:9115
+          - source_labels: [__param_target]
+            target_label: instance
+          - action: labelmap
+            regex: __meta_kubernetes_ingress_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_ingress_name]
+            target_label: kubernetes_name
+
+

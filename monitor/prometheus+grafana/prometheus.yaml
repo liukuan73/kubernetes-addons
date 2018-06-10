@@ -1,0 +1,72 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: kube-system
+  labels:
+    app: prometheus
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: prometheus
+      labels:
+        app: prometheus
+    spec:
+#      hostNetwork: true
+      containers:
+      - name: prometheus
+        image: prom/prometheus:v1.8.2
+        imagePullPolicy: IfNotPresent
+        args:
+          - '--storage.local.retention=12h'
+          - '--storage.local.memory-chunks=500000'
+          - '--config.file=/etc/prometheus/prometheus.yaml'
+          - '--alertmanager.url=alertmanager:9093/'
+        ports:
+        - name: webui
+          containerPort: 9090
+        resources:
+          requests:
+            cpu: 500m
+            memory: 500M
+          limits:
+            cpu: 500m
+            memory: 500M
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/prometheus
+        - name: rules-volume
+          mountPath: /etc/prometheus-rules
+      volumes:
+      - name: config-volume
+        configMap:
+          name: prometheus
+      - name: rules-volume
+        configMap:
+          name: prometheus-rules
+      nodeSelector:
+        node-role.kubernetes.io/master: "true"
+      tolerations:
+      - key: "node-role.kubernetes.io/master"
+        effect: "NoSchedule"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: kube-system
+  labels:
+    app: prometheus
+  annotations:
+    prometheus.io/scrape: 'true'
+spec:
+  type: NodePort
+#  type: ClusterIP
+  ports:
+    - name: webui
+      port: 9090
+      protocol: TCP
+      nodePort: 30009
+  selector:
+    app: prometheus

@@ -1,0 +1,48 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: prometheus-node-exporter
+  namespace: kube-system
+  labels:
+    app: prometheus-node-exporter
+spec:
+  template:
+    metadata:
+      name: prometheus-node-exporter
+      labels:
+        app: prometheus-node-exporter
+    spec:
+      containers:
+      - image: prom/node-exporter:v0.15.0
+        imagePullPolicy: IfNotPresent
+        name: prometheus-node-exporter
+        ports:
+        - name: prom-node-exp
+          #^ must be an IANA_SVC_NAME (at most 15 characters, ..)
+          containerPort: 9100
+          hostPort: 9100
+      tolerations:
+      - key: "node-role.kubernetes.io/master"
+        effect: "NoSchedule"
+      hostNetwork: true
+      hostPID: true
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/scrape: 'true'
+  name: prometheus-node-exporter
+  namespace: kube-system
+  labels:
+    app: prometheus-node-exporter
+spec:
+  clusterIP: None
+  ports:
+    - name: prometheus-node-exporter
+      port: 9100
+      protocol: TCP
+  selector:
+    app: prometheus-node-exporter
+  type: ClusterIP
