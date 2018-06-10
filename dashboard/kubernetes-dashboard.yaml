@@ -146,7 +146,7 @@ spec:
         emptyDir: {}
       serviceAccountName: kubernetes-dashboard
       nodeSelector:
-        node-role.kubernetes.io/master: true
+        node-role.kubernetes.io/master: "true"
       # Comment the following tolerations if Dashboard must not be deployed on master
       tolerations:
       - key: node-role.kubernetes.io/master
@@ -157,13 +157,13 @@ spec:
 
 kind: Service
 apiVersion: v1
-type: NodePort
 metadata:
   labels:
     k8s-app: kubernetes-dashboard
   name: kubernetes-dashboard
   namespace: kube-system
 spec:
+  type: NodePort
   ports:
     - port: 443
       targetPort: 8443
