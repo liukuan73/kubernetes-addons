@@ -61,7 +61,7 @@ spec:
   type: NodePort
   ports:
   - name: heketi
-    port: 8089
+    port: 8088
     protocol: TCP
     targetPort: 8088
     nodePort: 30088
