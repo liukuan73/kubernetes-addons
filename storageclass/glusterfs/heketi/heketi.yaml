@@ -45,12 +45,10 @@ spec:
           hostPath:
             path: /etc/hosts
       nodeSelector:
-        kubernetes.io/hostname: k8smaster03
+        kubernetes.io/hostname: k8smaster01
       tolerations:
-      - key: "master"
-        operator: "Equal"
-        value: "yes"
-        effect: "NoSchedule"
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
 ---
 apiVersion: v1
 kind: Service
