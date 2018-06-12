@@ -10,7 +10,7 @@ spec:
         app: fluentd
     spec:
       containers:
-      - image: daocloud.io/liukuan73/fluentd:0.14-86792b6
+      - image: daocloud.io/liukuan73/fluentd-k8s:master-d862521
         imagePullPolicy: IfNotPresent
         name: fluentd
         ports:
