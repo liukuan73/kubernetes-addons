@@ -1,0 +1,65 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: fluentd
+  namespace: kube-system
+spec:
+  template:
+    metadata:
+      labels:
+        app: fluentd
+    spec:
+      containers:
+      - image: daocloud.io/liukuan73/fluentd:0.14-86792b6
+        imagePullPolicy: IfNotPresent
+        name: fluentd
+        ports:
+        - containerPort: 80
+          protocol: TCP
+        volumeMounts:
+        - name: nginx-log
+          mountPath: /usr/local/openresty/nginx/logs/
+        - name: fluentd
+          mountPath: /etc/fluent/
+        - name: app-log
+          mountPath: /dcos/docker/containers
+        - name: local-time
+          mountPath: /etc/localtime
+        - name: k8s-log
+          mountPath: /var/log/containers
+        - name: pod-log
+          mountPath: /var/log/pods
+        - name: journal-log
+          mountPath: /run/log/journal
+      volumes:
+      - name: nginx-log
+        hostPath:
+          path: /usr/local/openresty/nginx/logs/
+      - name: app-log
+        hostPath:
+          path: /dcos/docker/containers
+      - name: k8s-log
+        hostPath:
+          path: /var/log/containers
+      - name: journal-log
+        hostPath:
+          path: /run/log/journal
+      - name: local-time
+        hostPath:
+          path: /etc/localtime
+      - name: pod-log
+        hostPath:
+          path: /var/log/pods
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: fluent.conf
+            path: fluent.conf
+          name: fluentd-configmap
+        name: fluentd
+      hostNetwork: true
+      tolerations:
+      - key: "master"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"

@@ -1,0 +1,182 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    namespace: kube-system
+    name: fluentd-configmap
+data:
+    fluent.conf: | 
+        <source>
+          @type tail
+          format  json
+          path /var/log/containers/*.log
+          pos_file /var/log/containers/container.pos
+          refresh_interval 2
+          time_key time_field
+          keep_time_key true
+          tag  container.*
+        </source>
+ 
+        <filter container.**>                                                       
+          @type record_transformer                                                           
+          enable_ruby
+          <record>                          
+            logname     ${tag.split('.')[4]}
+          </record>                         
+        </filter>
+
+        <match container.**>
+          @type copy
+          <store>
+            @type grep
+            input_key logname
+            exclude ^kube
+            remove_tag_prefix container
+            add_tag_prefix application
+          </store>
+          <store>
+            @type grep
+            regexp1 logname ^kube
+            remove_tag_prefix container
+            add_tag_prefix component
+          </store>
+        </match>
+
+        <filter application.**>
+           @type record_transformer
+           enable_ruby
+           <record>
+             app        ${(record['logname'].split('_')[0].split('-')[-2]  =~ /\d{10}/)==0 ? record['logname'].split('_')[0].split('-')[0..-3].join("-"):record['logname'].split('_')[0].split('-')[0..-2].join("-")}
+             namespace      ${record['logname'].split('_')[1]}
+             podname        ${record['logname'].split('_')[0]}
+             message        ${record['log']}
+             logtime        ${record['time']}
+             cluster        cluster-1
+             host           #{Socket.gethostname}
+           </record>
+           remove_keys    logname,log,stream,time
+        </filter>
+        <filter component.**>
+           @type record_transformer
+           enable_ruby
+           <record>
+             message        ${record['log']}
+             logtime        ${record['time']}
+             cluster        cluster-1 
+             component_name  ${record['logname'].split('-')[0]+'-'+record['logname'].split('-')[1]}
+             host           #{Socket.gethostname}
+           </record>
+           remove_keys    logname,log,time,stream
+        </filter>
+
+        <filter component.**>
+          @type loglevel
+        </filter>
+
+        <match application.**>                    
+          @type elasticsearch_dynamic                                           
+           hosts 10.142.21.21:9200,10.142.21.22:9200,10.142.21.23:9200       
+           logstash_format true            
+           logstash_prefix k8s-application 
+           logstash_dateformat %Y.%m      
+           type_name ${record['cluster']}-${record['namespace']}   
+           flush_interval immediate                                                   
+        </match> 
+        <match component.**>
+          @type elasticsearch_dynamic
+          hosts 10.142.21.21:9200,10.142.21.22:9200,10.142.21.23:9200
+          logstash_format true
+          logstash_prefix k8s-component
+          logstash_dateformat %Y.%m
+          type_name ${record['cluster']}
+          flush_interval immediate
+        </match>
+
+
+        <source>
+          @type systemd
+          path /run/log/journal
+          filters [{ "_SYSTEMD_UNIT": "etcd.service" }]
+          tag etcd
+          read_from_head false
+          <storage>
+            @type local
+            persistent false
+            path /run/log/journal/journal-etcd.pos
+          </storage>
+        </source>
+        <source>
+          @type systemd
+          path /run/log/journal
+          filters [{ "_SYSTEMD_UNIT": "kubelet.service" }]
+          tag kubelet
+          read_from_head false
+          <storage>
+            @type local
+            persistent false
+            path /run/log/journal/journal-kubelet.pos
+          </storage>
+        </source>
+
+        <filter etcd>
+          @type etcd
+        </filter>
+        <filter kubelet>
+          @type kubelet
+        </filter>
+
+        <filter {etcd}>
+           @type record_transformer
+           enable_ruby
+           <record>
+             host           #{Socket.gethostname}
+             cluster        cluster-1 
+             component_name etcd
+           </record>
+           remove_keys  MESSAGE,_SELINUX_CONTEXT,__CURSOR,__REALTIME_TIMESTAMP,__MONOTONIC_TIMESTAMP,_BOOT_ID,_TRANSPORT,PRIORITY,SYSLOG_FACILITY,_UID,_GID,_CAP_EFFECTIVE,_SYSTEMD_SLICE,_MACHINE_ID,_HOSTNAME,SYSLOG_IDENTIFIER,_PID,_COMM,_EXE,_CMDLINE,_SYSTEMD_CGROUP,_SYSTEMD_UNIT
+        </filter>
+        <filter {kubelet}>
+           @type record_transformer
+           enable_ruby
+           <record>
+             host           #{Socket.gethostname}
+             cluster        cluster-1 
+             component_name kubelet
+           </record>
+           remove_keys  MESSAGE,_SELINUX_CONTEXT,__CURSOR,__REALTIME_TIMESTAMP,__MONOTONIC_TIMESTAMP,_BOOT_ID,_TRANSPORT,PRIORITY,SYSLOG_FACILITY,_UID,_GID,_CAP_EFFECTIVE,_SYSTEMD_SLICE,_MACHINE_ID,_HOSTNAME,SYSLOG_IDENTIFIER,_PID,_COMM,_EXE,_CMDLINE,_SYSTEMD_CGROUP,_SYSTEMD_UNIT
+        </filter>
+
+        <match {etcd,kubelet}>
+          @type elasticsearch_dynamic
+          hosts 10.142.21.21:9200,10.142.21.22:9200,10.142.21.23:9200 
+          logstash_format true 
+          logstash_prefix journal
+          logstash_dateformat %Y.%m
+          type_name ${record['cluster']} 
+          flush_interval immediate
+        </match>
+
+
+        <source>
+          @type tail
+          format json
+          path /usr/local/openresty/nginx/logs/access.log
+          pos_file /var/log/containers/access.pos
+          time_key time_field
+          keep_time_key true
+          tag nginx
+        </source>
+
+        <filter nginx>
+          @type nginx
+        </filter>
+
+        <match nginx>
+          @type elasticsearch_dynamic
+          hosts 10.142.21.21:9200,10.142.21.22:9200,10.142.21.23:9200
+          index_name k8s-audit
+          type_name ${record['cluster']}-${record['namespace']}
+          remove_keys @timestamp,method
+          flush_interval immediate
+        </match>
+
+
