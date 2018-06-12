@@ -59,7 +59,5 @@ spec:
         name: fluentd
       hostNetwork: true
       tolerations:
-      - key: "master"
-        operator: "Equal"
-        value: "true"
-        effect: "NoSchedule"
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
