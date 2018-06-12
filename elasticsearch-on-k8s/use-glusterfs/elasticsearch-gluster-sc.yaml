@@ -1,0 +1,16 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: elasticsearch-glusterfs-sc
+provisioner: kubernetes.io/glusterfs
+reclaimPolicy: Delete
+parameters:
+  gidMax: "50000"
+  gidMin: "40000"
+  resturl: <heketi-ip>:<heketi-port>
+  volumetype: replicate:2
+  restauthenabled: "true"
+  restuser: "admin"
+  restuserkey: "123456"
+#  secretNamespace: "default"
+#  #  secretName: "heketi-secret"
