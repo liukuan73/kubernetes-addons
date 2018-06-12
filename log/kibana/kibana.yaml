@@ -1,0 +1,47 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: kibana
+  namespace: kube-system
+  labels:
+    app: kibana
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: kibana
+      labels:
+        app: kibana
+    spec:
+      containers:
+      - name: kibana
+        image: docker.elastic.co/kibana/kibana-oss:6.2.4
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: webui
+          containerPort: 5601
+        volumeMounts:
+        - name: config-volume
+          mountPath: /usr/share/kibana/config/
+      volumes:
+      - name: config-volume
+        configMap:
+          name: kibana
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana
+  namespace: kube-system
+  labels:
+    app: kibana
+spec:
+  type: NodePort
+  ports:
+    - name: webui
+      port: 5601
+      targetPort: 5601
+      protocol: TCP
+      nodePort: 30021
+  selector:
+    app: kibana
