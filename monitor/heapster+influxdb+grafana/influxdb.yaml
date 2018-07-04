@@ -43,6 +43,6 @@ spec:
   ports:
   - port: 8086
     targetPort: 8086
-    nodePort: 30004
+    nodePort: 30003
   selector:
     k8s-app: influxdb

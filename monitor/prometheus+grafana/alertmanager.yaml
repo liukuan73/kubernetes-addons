@@ -68,4 +68,4 @@ spec:
     protocol: TCP
     port: 9093
     targetPort: 9093
-    nodePort: 30010
+    nodePort: 30008

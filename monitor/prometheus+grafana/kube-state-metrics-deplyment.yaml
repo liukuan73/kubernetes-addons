@@ -21,7 +21,7 @@ spec:
       serviceAccountName: kube-state-metrics
       containers:
       - name: kube-state-metrics
-        image: gcr.io/google_containers/kube-state-metrics:v1.1.0
+        image: daocloud.io/liukuan73/kube-state-metrics:v1.1.0
         ports:
         - containerPort: 8080
       restartPolicy: Always
@@ -46,6 +46,6 @@ spec:
   - name: kube-state-metrics
     port: 8080
     targetPort: 8080
-    nodePort: 30008
+    nodePort: 30005
   selector:
     app: kube-state-metrics
