@@ -106,6 +106,7 @@ data:
           regex: (.+)
           target_label: __metrics_path__
           replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+
         metric_relabel_configs:
           - action: replace
             source_labels: [id]
@@ -124,6 +125,7 @@ data:
         tls_config:
           ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
         bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
         kubernetes_sd_configs:
 
         #The endpoints role discovers targets from listed endpoints of a service. For each
@@ -131,6 +133,7 @@ data:
         #a pod, all additional container ports of the pod, not bound to an endpoint port,
         #are discovered as targets as well
         - role: endpoints
+
         relabel_configs:
         # 只保留service中含有prometheus.io/scrape: 'true'的endpoint
         - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
@@ -140,6 +143,9 @@ data:
         - source_labels: [__meta_kubernetes_endpoint_port_name]
           regex: prometheus-node-exporter
           action: keep
+        # Match regex against the concatenated source_labels. Then, set target_label to replacement, 
+        # with match group references (${1}, ${2}, ...) in replacement substituted by their value. 
+        # If regex does not match, no replacement takes place.
         - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
           action: replace
           target_label: __scheme__
@@ -253,6 +259,12 @@ data:
           target_label: kubernetes_name
 
 
+      ## kubernetes-services and kubernetes-ingresses are blackbox_exporter related
+      
+      # Example scrape config for probing services via the Blackbox Exporter.
+      #
+      # The relabeling allows the actual service scrape endpoint to be configured
+      # for all or only some services.
       - job_name: 'kubernetes-services'
         # The HTTP resource path on which to fetch metrics from targets.
         metrics_path: /probe
@@ -282,31 +294,11 @@ data:
           target_label: kubernetes_name
 
 
-      - job_name: 'kubernetes-pods'
-        tls_config:
-          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-        kubernetes_sd_configs:
-        - role: pod
-        relabel_configs:
-        - source_labels: [__meta_kubernetes_role, __meta_kubernetes_pod_annotation_prometheus_io_scrape]
-          action: keep
-          regex: pod;true
-        - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
-          action: replace
-          regex: ([^:]+)(?::\d+)?;(\d+)
-          replacement: $1:$2
-          target_label: __address__
-        - action: labelmap
-          regex: __meta_kubernetes_pod_label_(.+)
-        - source_labels: [__meta_kubernetes_namespace]
-          action: replace
-          target_label: kubernetes_namespace
-        - source_labels: [__meta_kubernetes_pod_name]
-          action: replace
-          target_label: kubernetes_pod_name
 
-
+      # Example scrape config for probing ingresses via the Blackbox Exporter.
+      #
+      # The relabeling allows the actual ingress scrape endpoint to be configured
+      # for all or only some services.
       - job_name: 'kubernetes-ingresses'
         tls_config:
           ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
@@ -334,5 +326,30 @@ data:
             target_label: kubernetes_namespace
           - source_labels: [__meta_kubernetes_ingress_name]
             target_label: kubernetes_name
+      
 
 
+
+      - job_name: 'kubernetes-pods'
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        kubernetes_sd_configs:
+        - role: pod
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_role, __meta_kubernetes_pod_annotation_prometheus_io_scrape]
+          action: keep
+          regex: pod;true
+        - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+          action: replace
+          regex: ([^:]+)(?::\d+)?;(\d+)
+          replacement: $1:$2
+          target_label: __address__
+        - action: labelmap
+          regex: __meta_kubernetes_pod_label_(.+)
+        - source_labels: [__meta_kubernetes_namespace]
+          action: replace
+          target_label: kubernetes_namespace
+        - source_labels: [__meta_kubernetes_pod_name]
+          action: replace
+          target_label: kubernetes_pod_name
