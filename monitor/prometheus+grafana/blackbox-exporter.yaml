@@ -1,0 +1,99 @@
+# cat monitor-blackbox.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: prometheus-blackbox
+  name: prometheus-blackbox
+  namespace: monitor
+data:
+  blackbox.yml: |-
+    modules:
+      http_2xx:
+        prober: http
+        timeout: 10s
+        http:
+          valid_http_versions: ["HTTP/1.1", "HTTP/2"]
+          valid_status_codes: []
+          method: GET
+          preferred_ip_protocol: "ip4"
+      tcp_connect:
+        prober: tcp
+        timeout: 10s
+      icmp:
+        prober: icmp
+        timeout: 10s
+        icmp:
+          preferred_ip_protocol: "ip4"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-blackbox
+  namespace: monitor
+spec:
+  selector:
+    matchLabels:
+      app: prometheus-blackbox
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: prometheus-blackbox
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: prometheus-blackbox
+        image: prom/blackbox-exporter:v0.12.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: blackbox-port
+          containerPort: 9115
+        readinessProbe:
+          tcpSocket:
+            port: 9115
+          initialDelaySeconds: 5
+          timeoutSeconds: 5
+        resources:
+          requests:
+            memory: 50Mi
+            cpu: 100m
+          limits:
+            memory: 60Mi
+            cpu: 200m
+        volumeMounts:
+        - name: config
+          mountPath: /etc/blackbox_exporter
+        args:
+        - --config.file=/etc/blackbox_exporter/blackbox.yml
+        - --log.level=debug
+        - --web.listen-address=:9115
+      volumes:
+      - name: config
+        configMap:
+          name: prometheus-blackbox
+      nodeSelector:
+        node-role.kubernetes.io/master: "true"
+      tolerations:
+      - key: "node-role.kubernetes.io/master"
+        effect: "NoSchedule"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: prometheus-blackbox
+  name: prometheus-blackbox
+  namespace: monitor
+  annotations:
+    prometheus.io/scrape: 'true'
+spec:
+  type: NodePort
+  selector:
+    app: prometheus-blackbox
+  ports:
+  - name: blackbox
+    port: 9115
+    targetPort: 9115
+    nodePort: 30009
+    protocol: TCP
