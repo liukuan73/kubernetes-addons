@@ -7,7 +7,7 @@ metadata:
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: heapster
+  name: monitoring-heapster
   namespace: kube-system
 spec:
   replicas: 1
@@ -19,7 +19,7 @@ spec:
     spec:
       serviceAccountName: heapster
       containers:
-      - name: heapster
+      - name: monitoring-heapster
         image: daocloud.io/liukuan73/heapster-amd64:v1.5.2
         imagePullPolicy: IfNotPresent
         command:
@@ -41,7 +41,7 @@ metadata:
     # If you are NOT using this as an addon, you should comment out this line.
     kubernetes.io/cluster-service: 'true'
     kubernetes.io/name: Heapster
-  name: heapster
+  name: monitoring-heapster
   namespace: kube-system
 spec:
   type: NodePort
