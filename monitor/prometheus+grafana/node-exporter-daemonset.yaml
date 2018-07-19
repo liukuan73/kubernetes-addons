@@ -33,6 +33,8 @@ kind: Service
 metadata:
   annotations:
     prometheus.io/scrape: 'true'
+    prometheus.io/app-metrics: 'true'
+    prometheus.io/app-metrics-path: '/metrics'
   name: prometheus-node-exporter
   namespace: kube-system
   labels:

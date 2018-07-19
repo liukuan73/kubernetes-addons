@@ -16,6 +16,13 @@ data:
           valid_status_codes: []
           method: GET
           preferred_ip_protocol: "ip4"
+      http_post_2xx: # http post 监测模块
+        prober: http
+        timeout: 10s
+        http:
+          valid_http_versions: ["HTTP/1.1", "HTTP/2"]
+          method: POST
+          preferred_ip_protocol: "ip4"
       tcp_connect:
         prober: tcp
         timeout: 10s

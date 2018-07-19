@@ -36,6 +36,9 @@ kind: Service
 metadata:
   annotations:
     prometheus.io/scrape: 'true'
+    prometheus.io/http-probe: 'true'
+    prometheus.io/http-probe-path: '/healthz'
+    prometheus.io/http-probe-port: '8080'
   name: kube-state-metrics
   namespace: kube-system
   labels:

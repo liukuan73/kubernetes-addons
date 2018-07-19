@@ -57,6 +57,10 @@ metadata:
     # If you are NOT using this as an addon, you should comment out this line.
     kubernetes.io/cluster-service: 'true'
     kubernetes.io/name: monitoring-grafana
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/tcp-probe: 'true'
+    prometheus.io/tcp-probe-port: '80'
   name: monitoring-grafana
   namespace: kube-system
 spec:
