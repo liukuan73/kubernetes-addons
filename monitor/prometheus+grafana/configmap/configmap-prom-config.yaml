@@ -302,10 +302,17 @@ data:
         - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape, __meta_kubernetes_service_annotation_prometheus_io_app_metrics]
           regex: true;true
           action: keep
+        # 将用户指定的进程的metrics_path替换默认的metrics_path
         - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_app_metrics_path]
           action: replace
           target_label: __metrics_path__
           regex: (.+)
+        # 用pod_ip和用户指定的进程的metrics端口组合成真正的可以拿到数据的地址来替换原始__address__
+        - source_labels: [__meta_kubernetes_pod_ip, __meta_kubernetes_service_annotation_prometheus_io_app_metrics_port]
+          action: replace
+          target_label: __address__
+          regex: (.+);(.+)
+          replacement: $1:$2
         #- source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
         #  action: replace
         #  target_label: __address__
