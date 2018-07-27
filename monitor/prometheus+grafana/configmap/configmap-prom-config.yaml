@@ -331,6 +331,17 @@ data:
         #  target_label: kubernetes_name
 
 
+
+
+      # 监控自身，可配可不配
+      - job_name: 'prometheus'
+        # 目标通过static_configs参数进行静态配置
+        static_configs:
+        - targets: ['localhost:9090']  #prometheus 启动的端口
+
+
+
+
 #      - job_name: 'kubernetes-ingresses'
 #
 #        tls_config:
@@ -371,12 +382,7 @@ data:
 #            target_label: kubernetes_name
 
 
-#      # 监控自身，可配可不配
-#      - job_name: 'prometheus'
-#        # 目标通过static_configs参数进行静态配置
-#        static_configs:
-#        - targets: ['localhost:9090']  #prometheus 启动的端口
-#
+
 #      - job_name: 'kube-apiservers'
 #
 #        # 通过https访问apiserver
