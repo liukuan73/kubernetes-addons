@@ -20,14 +20,14 @@ spec:
       serviceAccountName: heapster
       containers:
       - name: monitoring-heapster
-        image: daocloud.io/liukuan73/heapster-amd64:v1.5.2
+        image: gcr.io/google_containers/heapster-amd64:v1.5.2
         imagePullPolicy: IfNotPresent
         command:
         - /heapster
         - --source=kubernetes:https://kubernetes.default
         - --sink=influxdb:http://monitoring-influxdb.kube-system.svc:8086
       nodeSelector:
-        node-role.kubernetes.io/master: true
+        node-role.kubernetes.io/master: "true"
       tolerations:
       - key: "node-role.kubernetes.io/master"
         effect: "NoSchedule"

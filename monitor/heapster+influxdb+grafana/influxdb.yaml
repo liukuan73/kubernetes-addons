@@ -22,7 +22,7 @@ spec:
       - name: influxdb-storage
         emptyDir: {}
       nodeSelector:
-        node-role.kubernetes.io/master: true
+        node-role.kubernetes.io/master: "true"
       tolerations:
       - key: "node-role.kubernetes.io/master"
         effect: "NoSchedule"
