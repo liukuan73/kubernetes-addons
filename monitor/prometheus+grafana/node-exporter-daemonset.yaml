@@ -13,7 +13,7 @@ spec:
         app: prometheus-node-exporter
     spec:
       containers:
-      - image: prom/node-exporter:v0.15.0
+      - image: prom/node-exporter:v0.16.0
         imagePullPolicy: IfNotPresent
         name: prometheus-node-exporter
         ports:
