@@ -22,6 +22,7 @@ spec:
           - '--storage.tsdb.path=/prometheus/data/'
           - '--storage.tsdb.retention=1d'
           - '--config.file=/etc/prometheus/prometheus.yaml'
+          - '--web.enable-lifecycle'
         ports:
         - name: webui
           containerPort: 9090
