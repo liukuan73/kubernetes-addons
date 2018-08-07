@@ -14,10 +14,10 @@ spec:
       containers:
       - name: alertmanager
         image: prom/alertmanager:v0.11.0
-        args:
+        args
           - '-config.file=/etc/alertmanager/config.yml'
           - '-storage.path=/alertmanager'
-          - '-web.external-url=http://10.142.21.21:30010/alertmanager'
+          - '-web.external-url=http://alertmanager:9093'
         ports:
         - name: alertmanager
           containerPort: 9093

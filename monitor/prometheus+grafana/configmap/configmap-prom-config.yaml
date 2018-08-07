@@ -10,9 +10,9 @@ data:
       scrape_interval: 20s
       # How long until a scrape request times out.
       scrape_timeout: 10s
-      # 计算的间隔时间
+      # 计算告警触发条件的周期
       evaluation_interval: 20s
-    # 报警规则文件
+    # 告警规则文件
     rule_files:
       - '/etc/prometheus-rules/*.rules'
     scrape_configs:
@@ -32,7 +32,8 @@ data:
 
         relabel_configs:
         # 用新的前缀代替原label name前缀，没有replacement的话功能就是去掉label_name前缀
-        # 例如：以下两句的功能就是将__meta_kubernetes_node_label_kubernetes_io_hostname变为kubernetes_io_hostname
+        # 例如：以下两句的功能就是将__meta_kubernetes_node_label_kubernetes_io_hostname
+        # 变为kubernetes_io_hostname
         - action: labelmap
           regex: __meta_kubernetes_node_label_(.+)
         # replacement中的值将会覆盖target_label中指定的label name的值,
@@ -60,24 +61,39 @@ data:
 
 
       - job_name: 'cadvisor'
+        # 通过https访问apiserver，通过apiserver的api获取数据
         scheme: https
         tls_config:
           ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
         bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-      
+              
+        #以k8s的角色(role)来定义收集，比如node,service,pod,endpoints,ingress等等 
         kubernetes_sd_configs:
+        # 从k8s的node对象获取数据
         - role: node
       
         relabel_configs:
+        # 用新的前缀代替原label name前缀，没有replacement的话功能就是去掉label name前缀
+        # 例如：以下两句的功能就是将__meta_kubernetes_node_label_kubernetes_io_hostname
+        # 变为kubernetes_io_hostname
         - action: labelmap
           regex: __meta_kubernetes_node_label_(.+)
+          
+        # replacement中的值将会覆盖target_label中指定的label name的值,
+        # 即__address__的值会被替换为kubernetes.default.svc:443
         - target_label: __address__
           replacement: kubernetes.default.svc:443
+          
+        # 获取__meta_kubernetes_node_name的值
         - source_labels: [__meta_kubernetes_node_name]
+          #匹配一个或多个任意字符，将上述source_labels的值生成变量
           regex: (.+)
+          # replacement中的值将会覆盖target_label中指定的label name的值,
+          # 即__metrics_path__的值会被替换为/api/v1/nodes/${1}/proxy/metrics,
+          # 其中${1}的值会被替换为__meta_kubernetes_node_name的值
           target_label: __metrics_path__
           replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
-
+          
         metric_relabel_configs:
           - action: replace
             source_labels: [id]
@@ -252,7 +268,7 @@ data:
         metrics_path: /probe
 
         # Optional HTTP URL parameters.
-        # 生成__param_module="http_2xx"的label
+        # 生成__param_module="tcp_connect"的label
         params:
           module: [tcp_connect]
 
