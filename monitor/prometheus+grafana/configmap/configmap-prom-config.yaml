@@ -334,9 +334,10 @@ data:
         #  target_label: __address__
         #  regex: (.+)(?::\d+);(\d+)
         #  replacement: $1:$2
-        ## 去掉label name中的前缀__meta_kubernetes_service_label_
-        #- action: labelmap
-        #  regex: __meta_kubernetes_service_label_(.+)
+        # 去掉label name中的前缀__meta_kubernetes_service_annotation_prometheus_io_app_metrics_
+        # 保留应用相应的label
+        - action: labelmap
+          regex: __meta_kubernetes_service_annotation_prometheus_io_app_metrics_(.+)
         ## 将__meta_kubernetes_namespace重命名为kubernetes_namespace
         #- source_labels: [__meta_kubernetes_namespace]
         #  action: replace
