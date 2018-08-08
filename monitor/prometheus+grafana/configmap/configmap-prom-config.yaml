@@ -329,11 +329,6 @@ data:
           target_label: __address__
           regex: (.+);(.+)
           replacement: $1:$2
-        #- source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
-        #  action: replace
-        #  target_label: __address__
-        #  regex: (.+)(?::\d+);(\d+)
-        #  replacement: $1:$2
         # 去掉label name中的前缀__meta_kubernetes_service_annotation_prometheus_io_app_metrics_
         # 保留应用相应的label
         - action: labelmap
