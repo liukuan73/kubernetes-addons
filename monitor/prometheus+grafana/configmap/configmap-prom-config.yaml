@@ -5,6 +5,10 @@ metadata:
   namespace: kube-system
 data:
   prometheus.yaml: |
+    alerting:
+      alertmanagers:
+        - static_configs:
+          - targets: ['alertmanager:9093']
     global:
       # 抓取的间隔时间
       scrape_interval: 20s
