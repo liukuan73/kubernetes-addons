@@ -7,23 +7,23 @@ data:
   config.yml: |-
     global:
       resolve_timeout: 5m
-      smtp_smarthost: 'smtp.exmail.qq.com:25'
+      smtp_smarthost: 'smtp.email.qq.com:25'
       smtp_from: 'admin@yourcompany.com'
       smtp_auth_username: 'admin@yourcompany.com'
       smtp_auth_password: 'yourpassword'
       slack_api_url: '<slack_api_url>'
     route:
-      receiver: slack-notifications
-      group_by: ['alertname', 'cluster', 'service']
+      receiver: default-receiver
+      group_by: ['alertname']
       group_wait: 30s
       group_interval: 5m
       repeat_interval: 15m
       routes:
-      - match:
+      - receiver: email-receiver
+        match:
           severity: email
-        receiver: email_alert
     receivers:
-    - name: 'email_alert'
+    - name: 'email-receiver'
       email_configs:
       - to: 'user@yourcompany.com'
         from: 'test.com'
@@ -31,7 +31,7 @@ data:
         auth_username: "liukuan73"
         auth_password: "123456"
         require_tls: true
-    - name: 'slack-notifications'
+    - name: 'slack-receiver'
       slack_configs:
       - channel: '#alerts'
     - name: 'test-webhook'
