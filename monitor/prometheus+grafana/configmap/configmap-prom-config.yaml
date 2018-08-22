@@ -245,9 +245,9 @@ data:
           replacement: prometheus-blackbox-exporter:9115
         - source_labels: [__param_target]
           target_label: instance
-        # 将含有__meta_kubernetes_service_label_前缀的label名中的前缀去掉
-        #- action: labelmap
-        #  regex: __meta_kubernetes_service_label_(.+)
+        # 去掉label name中的前缀__meta_kubernetes_service_annotation_prometheus_io_app_info_
+        - action: labelmap
+          regex: __meta_kubernetes_service_annotation_prometheus_io_app_info_(.+)
         #- source_labels: [__meta_kubernetes_namespace]
         #  target_label: kubernetes_namespace
         #- source_labels: [__meta_kubernetes_service_name]
@@ -294,9 +294,9 @@ data:
           replacement: prometheus-blackbox-exporter:9115
         - source_labels: [__param_target]
           target_label: instance
-        # 将含有__meta_kubernetes_service_label_前缀的label名中的前缀去掉
-        #- action: labelmap
-        #  regex: __meta_kubernetes_service_label_(.+)
+        # 去掉label name中的前缀__meta_kubernetes_service_annotation_prometheus_io_app_info_
+        - action: labelmap
+          regex: __meta_kubernetes_service_annotation_prometheus_io_app_info_(.+)
         #- source_labels: [__meta_kubernetes_namespace]
         #  target_label: kubernetes_namespace
         #- source_labels: [__meta_kubernetes_service_name]
@@ -333,10 +333,9 @@ data:
           target_label: __address__
           regex: (.+);(.+)
           replacement: $1:$2
-        # 去掉label name中的前缀__meta_kubernetes_service_annotation_prometheus_io_app_metrics_
-        # 保留应用相应的label
+        # 去掉label name中的前缀__meta_kubernetes_service_annotation_prometheus_io_app_info_
         - action: labelmap
-          regex: __meta_kubernetes_service_annotation_prometheus_io_app_metrics_(.+)
+          regex: __meta_kubernetes_service_annotation_prometheus_io_app_info_(.+)
         ## 将__meta_kubernetes_namespace重命名为kubernetes_namespace
         #- source_labels: [__meta_kubernetes_namespace]
         #  action: replace
