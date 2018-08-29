@@ -229,11 +229,11 @@ data:
         - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape, __meta_kubernetes_service_annotation_prometheus_io_http_probe]
           regex: true;true
           action: keep
-        - source_labels: [__meta_kubernetes_service_name, __meta_kubernetes_service_annotation_prometheus_io_http_probe_port, __meta_kubernetes_service_annotation_prometheus_io_http_probe_path]
+        - source_labels: [__meta_kubernetes_service_name, __meta_kubernetes_namespace, __meta_kubernetes_service_annotation_prometheus_io_http_probe_port, __meta_kubernetes_service_annotation_prometheus_io_http_probe_path]
           action: replace
           target_label: __param_target
-          regex: (.+);(.+);(.+)
-          replacement: $1:$2$3
+          regex: (.+);(.+);(.+);(.+)
+          replacement: $1.$2:$3$4
         # 用__address__这个label的值创建一个名为__param_target的label为blackbox-exporter,值为内部service的访问地址，作为blackbox-exporter采集用
         #- source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_http_probe_path]
         #  action: replace
@@ -281,11 +281,11 @@ data:
         - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape, __meta_kubernetes_service_annotation_prometheus_io_tcp_probe]
           regex: true;true
           action: keep
-        - source_labels: [__meta_kubernetes_service_name, __meta_kubernetes_service_annotation_prometheus_io_tcp_probe_port]
+        - source_labels: [__meta_kubernetes_service_name, __meta_kubernetes_namespace, __meta_kubernetes_service_annotation_prometheus_io_tcp_probe_port]
           action: replace
           target_label: __param_target
-          regex: (.+);(.+)
-          replacement: $1:$2
+          regex: (.+);(.+);(.+)
+          replacement: $1.$2:$3
         # 用__address__这个label的值创建一个名为__param_target的label为blackbox-exporter,值为内部service的访问地址，作为blackbox-exporter采集用
         #- source_labels: [__address__]
         #  target_label: __param_target
