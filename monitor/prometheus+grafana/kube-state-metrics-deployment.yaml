@@ -39,10 +39,6 @@ metadata:
     prometheus.io/http-probe: 'true'
     prometheus.io/http-probe-path: '/healthz'
     prometheus.io/http-probe-port: '8080'
-    prometheus.io/scrape: 'true'
-    prometheus.io/app-metrics: 'true'
-    prometheus.io/app-metrics-path: '/metrics'
-    prometheus.io/app-metrics-port: '8080'
   name: kube-state-metrics
   namespace: kube-system
   labels:
