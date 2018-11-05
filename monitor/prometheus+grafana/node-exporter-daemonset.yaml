@@ -26,6 +26,7 @@ spec:
         effect: "NoSchedule"
       hostNetwork: true
       hostPID: true
+      hostIPC: true
       restartPolicy: Always
 ---
 apiVersion: v1
