@@ -556,7 +556,7 @@ data:
           description: '{{ $labels.node }} is under disk pressure.'
           summary: Node is under disk pressure.
       - alert: NodeCPUUsage
-        expr: (100 - (avg by (instance) (irate(node_cpu{job="node-exporter",mode="idle"}[5m])) * 100)) > 90
+        expr: (100 - (avg by (instance) (irate(node_cpu_seconds_total{job="prometheus-node-exporter",mode="idle"}[5m])) * 100)) > 90
         for: 30m
         labels:
           severity: warning
