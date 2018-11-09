@@ -343,7 +343,7 @@ data:
             to run.
           summary: Daemonsets are not scheduled correctly
       - alert: PodFrequentlyRestarting
-        expr: increase(kube_pod_container_status_restarts_total[1h]) > 5
+        expr: increase(kube_pod_container_status_restarts[1h]) > 5
         for: 10m
         labels:
           severity: warning
@@ -351,23 +351,18 @@ data:
           description: Pod {{$labels.namespaces}}/{{$labels.pod}} is was restarted {{$value}}
             times within the last hour
           summary: Pod is restarting frequently
-  kubelet.rules: |+
-    groups:
-    - name: kubelet.rules
-      rules:
-      - alert: K8SNodeNotReady
-        expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+      - alert: KubeNodeNotReady
+        expr: kube_node_status_condition{job="kube-state-metrics",condition="Ready",status="true"} == 0
         for: 1h
         labels:
           severity: warning
         annotations:
-          description: The Kubelet on {{ $labels.node }} has not checked in with the API,
-            or has set itself to NotReady, for more than an hour
-          summary: Node status is NotReady
+          message: '{{ $labels.node }} has been unready for more than an hour'
+          runbook_url: https://github.com/kubernetes-monitoring/kubernetes-mixin/tree/master/runbook.md#alert-name-kubenodenotready
       - alert: K8SManyNodesNotReady
         expr: count(kube_node_status_condition{condition="Ready",status="true"} == 0)
           > 1 and (count(kube_node_status_condition{condition="Ready",status="true"} ==
-          0) / count(kube_node_status_condition{condition="Ready",status="true"})) > 0.2
+          0) / count(kube_node_status_condition{condition="Ready",status="true"})) > 0.5
         for: 1m
         labels:
           severity: critical
@@ -375,6 +370,10 @@ data:
           description: '{{ $value }} Kubernetes nodes (more than 10% are in the NotReady
             state).'
           summary: Many Kubernetes nodes are Not Ready
+  kubelet.rules: |+
+    groups:
+    - name: kubelet.rules
+      rules:
       - alert: K8SKubeletDown
         expr: count(up{job="kubelet"} == 0) / count(up{job="kubelet"}) > 0.03
         for: 1h
@@ -383,9 +382,9 @@ data:
         annotations:
           description: Prometheus failed to scrape {{ $value }}% of kubelets.
           summary: Many Kubelets cannot be scraped
-      - alert: K8SKubeletDown
+      - alert: K8SManyKubeletDown
         expr: absent(up{job="kubelet"} == 1) or count(up{job="kubelet"} == 0) / count(up{job="kubelet"})
-          > 0.1
+          > 0.5
         for: 1h
         labels:
           severity: critical
@@ -522,7 +521,7 @@ data:
     - name: node.rules
       rules:
       - alert: NodeExporterDown
-        expr: absent(up{job="node-exporter"} == 1)
+        expr: absent(up{job="prometheus-node-exporter"} == 1)
         for: 10m
         labels:
           severity: warning
@@ -539,8 +538,7 @@ data:
           description: '{{ $labels.node }} has run out of disk space.'
           summary: Node ran out of disk space.
       - alert: K8SNodeMemoryPressure
-        expr: kube_node_status_condition{condition="MemoryPressure",status="true"} ==
-          1
+        expr: kube_node_status_condition{condition="MemoryPressure",status="true"} == 1
         labels:
           service: k8s
           severity: warning
@@ -564,7 +562,7 @@ data:
           summary: "{{$labels.instance}}: High CPU usage detected"
           description: "{{$labels.instance}}: CPU usage is above 90% (current value is: {{ $value }})"
       - alert: NodeMemoryUsage
-        expr: (((node_memory_MemTotal-node_memory_MemFree-node_memory_Cached)/(node_memory_MemTotal)*100)) > 90
+        expr: (((node_memory_MemTotal_bytes-node_memory_MemFree_bytes-node_memory_Cached_bytes)/(node_memory_MemTotal_bytes)*100)) > 90
         for: 30m
         labels:
           severity: warning
@@ -575,7 +573,7 @@ data:
     groups:
     - name: prometheus.rules
       rules:
-      - alert: FailedReload
+      - alert: PrometheusReloadFailed
         expr: prometheus_config_last_reload_successful == 0
         for: 10m
         labels:

@@ -346,15 +346,78 @@ data:
         #  target_label: kubernetes_name
 
 
-
-
-      # 监控自身，可配可不配
+      # 监控自身
       - job_name: 'prometheus'
         # 目标通过static_configs参数进行静态配置
         static_configs:
         - targets: ['localhost:9090']  #prometheus 启动的端口
 
 
+      - job_name: 'kube-apiservers'
+
+        # 通过https访问apiserver
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+        #以k8s的角色(role)来定义收集，比如node,service,pod,endpoints,ingress等等
+        kubernetes_sd_configs:
+        # 从endpoints获取apiserver数据
+        - role: endpoints
+
+        #relabel_configs允许在抓取之前对任何目标及其标签进行修改。
+        relabel_configs:
+        # 选择哪些label
+        - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+          # 上述选择的label的值需要与下述对应
+          regex: default;kubernetes;https
+          # 含有符合regex的source_label的endpoints进行保留
+          action: keep
+
+
+      - job_name: 'kube-controller-manager'
+
+        # 通过https访问apiserver
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+        #以k8s的角色(role)来定义收集，比如node,service,pod,endpoints,ingress等等
+        kubernetes_sd_configs:
+        # 从endpoints获取apiserver数据
+        - role: endpoints
+
+        #relabel_configs允许在抓取之前对任何目标及其标签进行修改。
+        relabel_configs:
+        # 选择哪些label
+        - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name]
+          # 上述选择的label的值需要与下述对应
+          regex: kube-system;kube-controller-manager-prometheus-discovery
+          # 含有符合regex的source_label的endpoints进行保留
+          action: keep
+
+
+      - job_name: 'kube-scheduler'
+
+        # 通过https访问apiserver
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+        #以k8s的角色(role)来定义收集，比如node,service,pod,endpoints,ingress等等
+        kubernetes_sd_configs:
+        # 从endpoints获取apiserver数据
+        - role: endpoints
+
+        #relabel_configs允许在抓取之前对任何目标及其标签进行修改。
+        relabel_configs:
+        # 选择哪些label
+        - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name]
+          # 上述选择的label的值需要与下述对应
+          regex: kube-system;kube-scheduler-prometheus-discovery
+          # 含有符合regex的source_label的endpoints进行保留
+          action: keep
 
 
 #      - job_name: 'kubernetes-ingresses'
@@ -398,27 +461,6 @@ data:
 
 
 
-#      - job_name: 'kube-apiservers'
-#
-#        # 通过https访问apiserver
-#        scheme: https
-#        tls_config:
-#          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-#        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-#
-#        #以k8s的角色(role)来定义收集，比如node,service,pod,endpoints,ingress等等
-#        kubernetes_sd_configs:
-#        # 从endpoints获取apiserver数据
-#        - role: endpoints
-#
-#        #relabel_configs允许在抓取之前对任何目标及其标签进行修改。
-#        relabel_configs:
-#        # 选择哪些label
-#        - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
-#          # 上述选择的label的值需要与下述对应
-#          regex: default;kubernetes;https
-#          # 含有符合regex的source_label的endpoints进行保留
-#          action: keep
 
 #      - job_name: kubernetes-service-endpoints
 #
