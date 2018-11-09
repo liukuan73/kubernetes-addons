@@ -56,7 +56,6 @@ metadata:
   namespace: kube-system
   annotations:
     prometheus.io/scrape: 'true'
-    prometheus.io/path: '/alertmanager/metrics'
   labels:
     name: alertmanager
 spec:

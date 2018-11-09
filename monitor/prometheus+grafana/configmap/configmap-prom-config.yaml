@@ -21,6 +21,22 @@ data:
       - '/etc/prometheus-rules/*.rules'
     scrape_configs:
 
+      - job_name: 'alertmanager'
+
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+        kubernetes_sd_configs:
+        - role: service
+
+        relabel_configs:
+        # 只保留含有label为prometheus/io=scrape的service
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape, __meta_kubernetes_namespace, __meta_kubernetes_service_name]
+          regex: true;kube-system;alertmanager
+          action: keep
+
+
       - job_name: 'kubelet'
 
         # 通过https访问apiserver，通过apiserver的api获取数据
@@ -391,9 +407,9 @@ data:
         #relabel_configs允许在抓取之前对任何目标及其标签进行修改。
         relabel_configs:
         # 选择哪些label
-        - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name]
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape, __meta_kubernetes_namespace, __meta_kubernetes_service_name]
           # 上述选择的label的值需要与下述对应
-          regex: kube-system;kube-controller-manager-prometheus-discovery
+          regex: true;kube-system;kube-controller-manager-prometheus-discovery
           # 含有符合regex的source_label的endpoints进行保留
           action: keep
 
@@ -413,9 +429,9 @@ data:
         #relabel_configs允许在抓取之前对任何目标及其标签进行修改。
         relabel_configs:
         # 选择哪些label
-        - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name]
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape, __meta_kubernetes_namespace, __meta_kubernetes_service_name]
           # 上述选择的label的值需要与下述对应
-          regex: kube-system;kube-scheduler-prometheus-discovery
+          regex: true;kube-system;kube-scheduler-prometheus-discovery
           # 含有符合regex的source_label的endpoints进行保留
           action: keep
 
