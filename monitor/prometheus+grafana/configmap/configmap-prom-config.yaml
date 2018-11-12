@@ -435,6 +435,28 @@ data:
           # 含有符合regex的source_label的endpoints进行保留
           action: keep
 
+      - job_name: 'etcd'
+
+        # 通过https访问apiserver
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+        #以k8s的角色(role)来定义收集，比如node,service,pod,endpoints,ingress等等
+        kubernetes_sd_configs:
+        # 从endpoints获取apiserver数据
+        - role: endpoints
+
+        #relabel_configs允许在抓取之前对任何目标及其标签进行修改。
+        relabel_configs:
+        # 选择哪些label
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape, __meta_kubernetes_namespace, __meta_kubernetes_service_name]
+          # 上述选择的label的值需要与下述对应
+          regex: true;kube-system;etcd-prometheus-discovery
+          # 含有符合regex的source_label的endpoints进行保留
+          action: keep
+
+
 
 #      - job_name: 'kubernetes-ingresses'
 #

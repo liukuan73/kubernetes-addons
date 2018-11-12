@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: kube-system
+  name: etcd-prometheus-discovery
+  labels:
+    component: etcd
+  annotations:
+    prometheus.io/scrape: 'true'
+spec:
+  selector:
+    component: etcd
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: http-metrics
+    port: 2379
+    targetPort: 2379
+    protocol: TCP
