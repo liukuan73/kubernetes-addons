@@ -458,7 +458,7 @@ data:
           action: keep
 
 
-        - job_name: 'kube-proxy'
+      - job_name: 'kube-proxy'
 
         # 通过https访问apiserver
         tls_config:
