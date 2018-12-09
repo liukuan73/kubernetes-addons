@@ -9,7 +9,7 @@ metadata:
     prometheus.io/scrape: 'true'
 spec:
   selector:
-    k8s-app: kube-scheduler
+    component: kube-scheduler
   type: ClusterIP
   clusterIP: None
   ports:
